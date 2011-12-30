@@ -132,14 +132,34 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	 * Returns the blockID at specified minecraft world co-ordinates
 	 */
 	this.getBlockId = function(x, y, z) {
-		return this.schematic.Schematic.payload.Blocks.payload.charCodeAt(this.getPosition(x,y,z)) & 0xff;
+		//If a function calls for a blocktype which is off the grid, return 0 (air)
+		if (
+			x >= this.getSizeX() || x < 0
+			|| y >= this.getSizeY()	|| y < 0
+			|| z >= this.getSizeZ()	|| z < 0
+		) {
+			return 0;
+		}
+		else {
+			return this.schematic.Schematic.payload.Blocks.payload.charCodeAt(this.getPosition(x,y,z)) & 0xff;
+		}
 	}
 	
 	/**
 	 * Returns the meta data for block at specified minecraft world co-ordinates
 	 */
 	this.getBlockMetadata = function(x, y, z) {
-		return this.schematic.Schematic.payload.Data.payload.charCodeAt(this.getPosition(x,y,z)) & 0xff;
+		//If a function calls for a blocktype which is off the grid, return 0
+		if (
+			x >= this.getSizeX() || x < 0
+			|| y >= this.getSizeY()	|| y < 0
+			|| z >= this.getSizeZ()	|| z < 0
+		) {
+			return 0;
+		}
+		else {
+			return this.schematic.Schematic.payload.Data.payload.charCodeAt(this.getPosition(x,y,z)) & 0xff;
+		}
 	}
 	
 	/**
