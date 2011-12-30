@@ -28,15 +28,15 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 				payload: {
 					Height: {
 						type: 2, 
-						payload: 128
+						payload: schematicSizeY
 					},
 					Length: {
 						type: 2,
-						payload: 16
+						payload: schematicSizeZ
 					},
 					Width: {
 						type: 2,
-						payload: 16
+						payload: schematicSizeX
 					},
 					Entities: {
 						type: 9,
