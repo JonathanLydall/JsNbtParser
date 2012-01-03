@@ -1,7 +1,7 @@
 /*
  * Author: Jonathan Lydall
  * Website: http://www.mordritch.com/ 
- * Date: 2011-12-30
+ * Date: 2012-01-03
  * 
  */
 
@@ -12,10 +12,6 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	 * Makes this instantiation generate and use a new schematic filled with air
 	 */
 	this.makeNew = function(sizeX, sizeY, sizeZ) {
-		var schematicSizeX = sizeZ;
-		var schematicSizeY = sizeY;
-		var schematicSizeZ = sizeX;
-
 		var byteArrayContents = "";
 		
 		for (var i = 0; i < sizeX*sizeY*sizeZ; i++) {
@@ -28,15 +24,15 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 				payload: {
 					Height: {
 						type: 2, 
-						payload: schematicSizeY
+						payload: sizeY
 					},
 					Length: {
 						type: 2,
-						payload: schematicSizeZ
+						payload: sizeZ
 					},
 					Width: {
 						type: 2,
-						payload: schematicSizeX
+						payload: sizeX
 					},
 					Entities: {
 						type: 9,
@@ -87,12 +83,6 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	 */
 	this.getPosition = function(x, y, z, overrideSizeX, overrideSizeY, overrideSizeZ) {
 		/*
-		Schematics indexes for the Blocks and Data arrays are ordered y,z,x - that is, the x coordinate varies the fastest. 
-		
-		X (Width)	increases South, decreases North
-		Y (Height)	increases upwards, decreases downwards
-		Z (Length)	increases West, decreases East
-		
 		The Minecraft coordinate system is as follows:
 		(http://www.minecraftwiki.net/wiki/Alpha_Level_Format/Chunk_File_Format#Block_Format)
 
@@ -105,27 +95,22 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 		var schematicSizeY = this.schematic.Schematic.payload.Height.payload;
 		var schematicSizeZ = this.schematic.Schematic.payload.Length.payload;
 		
-		//Intentionally swapping schematicSizeZ and schematicSizeX here due to 
-		//difference in minecraft and schematic coordinate system
-		if (typeof overrideSizeX != "undefined") schematicSizeZ = overrideSizeX;
+		if (typeof overrideSizeX != "undefined") schematicSizeX = overrideSizeX;
 		if (typeof overrideSizeY != "undefined") schematicSizeY = overrideSizeY;
-		if (typeof overrideSizeZ != "undefined") schematicSizeX = overrideSizeZ; 
+		if (typeof overrideSizeZ != "undefined") schematicSizeZ = overrideSizeZ; 
 		
-		var schematicX = z;
-		var schematicY = y;
-		var schematicZ = schematicSizeZ - x - 1;
-
-		
-		if (schematicZ >= schematicSizeZ || schematicZ < 0)
+		if (x >= schematicSizeX || x < 0)
 			throw new Error("DataSchematic.getPosition(): x is out of bounds.")
 		
-		if (schematicY >= schematicSizeY || schematicY < 0)
+		if (y >= schematicSizeY || y < 0)
 			throw new Error("DataSchematic.getPosition(): y is out of bounds.")
 		
-		if (schematicX >= schematicSizeX || schematicX < 0)
+		if (z >= schematicSizeZ || z < 0)
 			throw new Error("DataSchematic.getPosition(): z is out of bounds.")
 		
-		return ((schematicY*schematicSizeZ*schematicSizeX) + (schematicZ*schematicSizeX) + (schematicX));
+		return x + (z * schematicSizeX) + (y * schematicSizeX * schematicSizeZ);
+		return y + z * this.chunkSizeY + x * this.chunkSizeY * this.chunkSizeZ;
+
 	}
 
 	/**
@@ -184,9 +169,9 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	this.setDimensions = function(sizeX, sizeY, sizeZ, offsetX, offsetY, offsetZ) {
 		var oldBlocks = this.schematic.Schematic.payload.Blocks.payload;
 		var oldData = this.schematic.Schematic.payload.Data.payload;
-		var oldSizeX = this.schematic.Schematic.payload.Length.payload;
+		var oldSizeX = this.schematic.Schematic.payload.Width.payload;
 		var oldSizeY = this.schematic.Schematic.payload.Height.payload;
-		var oldSizeZ = this.schematic.Schematic.payload.Width.payload;
+		var oldSizeZ = this.schematic.Schematic.payload.Length.payload;
 		
 		var fillWith = String.fromCharCode(0);
 		var newString = "";
@@ -195,9 +180,9 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 			 
 		this.schematic.Schematic.payload.Blocks.payload = newString;
 		this.schematic.Schematic.payload.Data.payload = newString;
-		this.schematic.Schematic.payload.Length.payload = sizeX;
+		this.schematic.Schematic.payload.Width.payload = sizeX;
 		this.schematic.Schematic.payload.Height.payload = sizeY;
-		this.schematic.Schematic.payload.Width.payload = sizeZ;
+		this.schematic.Schematic.payload.Length.payload = sizeZ;
 		
 		var oldBlockId;
 		var oldBlockMetadata;
@@ -228,7 +213,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	 * Returns the x size of the schematic in terms minecraft co-ordinate system
 	 */
 	this.getSizeX = function() {
-		return this.schematic.Schematic.payload.Length.payload;
+		return this.schematic.Schematic.payload.Width.payload;
 	}
 	
 	/**
@@ -242,7 +227,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	 * Returns the z size of the schematic in terms minecraft co-ordinate system
 	 */
 	this.getSizeZ = function() {
-		return this.schematic.Schematic.payload.Width.payload;
+		return this.schematic.Schematic.payload.Length.payload;
 	}
 	
 	/**
