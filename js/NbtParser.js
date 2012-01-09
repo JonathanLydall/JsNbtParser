@@ -1,7 +1,7 @@
 /*
  * Author: Jonathan Lydall
  * Website: http://www.mordritch.com/ 
- * Date: 2011-12-30
+ * Date: 2012-01-09
  * 
  */
 
@@ -79,31 +79,31 @@ com.mordritch.mcSim.NbtParser = function() {
 	 */
 	this.decode = function(binaryNbtData) {
 		var returnData = {};
-		var staterTagId;
+		var starterTagId;
 		var starterTagName;
 		
 		this.binaryNbtData = binaryNbtData;
 		this.pointer = 0;
 		
-		staterTagId = this.readByte();
+		starterTagId = this.readByte();
 
 		//I don't know if it's alpha levels in general, or my chunk extractor/decompressor, but
 		//chunks seem to start with a TAG_Compound which has a name length of 0. That is, files
 		//start with 0x0a0000. 
 		if (this.readShort(true) == 0) {
 			this.pointer += 2;
-			staterTagId = this.readByte();
+			starterTagId = this.readByte();
 		}
 
 
-		if (staterTagId != this.expectedStartingTag) {
-			throw new Error("NbtParser.decode(): Bad starting tag for NBT data, expected 0x"+this.byteToHex(this.expectedStartingTag)+" but got 0x"+this.byteToHex(staterTagId)+".");
+		if (starterTagId != this.expectedStartingTag) {
+			throw new Error("NbtParser.decode(): Bad starting tag for NBT data, expected 0x"+this.byteToHex(this.expectedStartingTag)+" but got 0x"+this.byteToHex(starterTagId)+".");
 		}
 		starterTagName = this.readString();
 		
 		returnData[starterTagName] = {
-			"type": staterTagId,
-			"payload": this.readTagData(staterTagId)
+			"type": starterTagId,
+			"payload": this.readTagData(starterTagId)
 		};
 		
 		return returnData;
