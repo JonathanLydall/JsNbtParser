@@ -170,7 +170,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	 * Sets a block and its metadata to specified values and resizes
 	 * the schematic if values fall out of bounds
 	 */
-	schematic.forceSetBlockAndMetadata = function(x, y, z, blockId, metadata) {
+	this.forceSetBlockAndMetadata = function(x, y, z, blockId, metadata) {
 		if ( x < 0 ||
 		     y < 0 ||
 		     z < 0 ||
