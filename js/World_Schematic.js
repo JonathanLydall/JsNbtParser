@@ -300,4 +300,17 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	this.destroy = function() {
 		this.schematic = undefined;
 	}
+    
+	/**
+	 * @param x
+	 * @param y
+	 * @param z
+	 * @return object containing values x, y, z representing the chunk position
+	 */
+	this.getBlockChunkPosition = function(x, y, z){
+	  x = Math.floor( x / 16 );
+	  y = Math.floor( y / 16 );
+	  z = Math.floor( z / 16 );
+	  return { x : x, y : y, z : z };
+	}
 }
