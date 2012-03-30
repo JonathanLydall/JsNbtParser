@@ -150,11 +150,11 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	/**
 	 * Sets a block and its metadata to specified values 
 	 */
-	this.setBlockAndMetadata = function(x, y, z, blockId, metadata) {
+	this.setBlockAndMetadata = function(x, y, z, blockID, metadata) {
 		var position = this.getPosition(x, y, z);
 		
 		this.schematic.Schematic.payload.Blocks.payload =
-			this.replaceAt(this.schematic.Schematic.payload.Blocks.payload, position, String.fromCharCode(blockId)); 
+			this.replaceAt(this.schematic.Schematic.payload.Blocks.payload, position, String.fromCharCode(blockID)); 
 
 		this.schematic.Schematic.payload.Data.payload =
 			this.replaceAt(this.schematic.Schematic.payload.Data.payload, position, String.fromCharCode(metadata)); 

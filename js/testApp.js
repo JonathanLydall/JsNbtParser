@@ -39,7 +39,7 @@ function onSuccess(data) {
 
 function preview() {
 	var preString = "";
-	var blockId;
+	var blockID;
 	
 	preString += "+";
 	for (var x = 0; x < schematic.getSizeX(); x++) {
@@ -50,10 +50,10 @@ function preview() {
 	for (var z = 0; z < schematic.getSizeZ(); z++) {
 		preString += "|";
 		for (var x = 0; x < schematic.getSizeX(); x++) {
-			blockId = schematic.getBlockId(x,0,z);
-			if (blockId == 0) preString += "  ";
-			if (blockId > 0 && blockId < 16) preString += "0" + blockId.toString(16);
-			if (blockId >= 16) preString += blockId.toString(16);
+			blockID = schematic.getBlockId(x,0,z);
+			if (blockID == 0) preString += "  ";
+			if (blockID > 0 && blockID < 16) preString += "0" + blockID.toString(16);
+			if (blockID >= 16) preString += blockID.toString(16);
 		}
 		preString += "|\n";
 	}
