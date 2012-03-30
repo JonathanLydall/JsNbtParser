@@ -146,7 +146,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 			return this.schematic.Schematic.payload.Data.payload.charCodeAt(this.getPosition(x,y,z)) & 0xff;
 		}
 	}
-	
+
 	/**
 	 * Sets a block and its metadata to specified values 
 	 */
@@ -158,6 +158,46 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 
 		this.schematic.Schematic.payload.Data.payload =
 			this.replaceAt(this.schematic.Schematic.payload.Data.payload, position, String.fromCharCode(metadata)); 
+	}
+
+	/**
+	 * @param x
+	 * @param y
+	 * @param z
+	 * @param blockId
+	 * @param metadata
+	 *
+	 * Sets a block and its metadata to specified values and resizes
+	 * the schematic if values fall out of bounds
+	 */
+	this.forceSetBlockAndMetadata = function(x, y, z, blockId, metadata) {
+		if ( x < 0 ||
+		     y < 0 ||
+		     z < 0 ||
+		     x > this.getSizeX() -1 ||
+		     y > this.getSizeY() -1 ||
+		     z > this.getSizeZ() -1 ) {
+			this.setDimensions(
+				// if dimension is greater than or equal to the total size of the
+				// schematic then set the size of the schematic to match; if not
+				// get the current size of the schematic and add the inverse of the
+				// dimension if the dimension is less than zero
+				x >= this.getSizeX() ? x + 1 : this.getSizeX() + (x < 0 ? x * -1 : 0),
+				y >= this.getSizeY() ? y + 1 : this.getSizeY() + (y < 0 ? y * -1 : 0),
+				z >= this.getSizeZ() ? z + 1 : this.getSizeZ() + (z < 0 ? z * -1 : 0),
+				// offset the schematic to the inverse of the dimension if
+				// the dimension is less than zero
+				x < 0 ? x * -1 : 0,
+				y < 0 ? y * -1 : 0,
+				z < 0 ? z * -1 : 0
+			);
+		}
+		// because we've already offset the schematic we'll now
+		// reset any dimensions below zero
+		if ( x < 0 ) x = 0;
+		if ( y < 0 ) y = 0;
+		if ( z < 0 ) z = 0;
+		this.setBlockAndMetadata(x, y, z, blockId, metadata);
 	}
 	
 	/**
@@ -259,5 +299,18 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	 */
 	this.destroy = function() {
 		this.schematic = undefined;
+	}
+    
+	/**
+	 * @param x
+	 * @param y
+	 * @param z
+	 * @return object containing values x, y, z representing the chunk position
+	 */
+	this.getBlockChunkPosition = function(x, y, z){
+	  x = Math.floor( x / 16 );
+	  y = Math.floor( y / 16 );
+	  z = Math.floor( z / 16 );
+	  return { x : x, y : y, z : z };
 	}
 }
