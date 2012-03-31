@@ -12,10 +12,12 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	 * Makes this instantiation generate and use a new schematic filled with air
 	 */
 	this.makeNew = function(sizeX, sizeY, sizeZ) {
-		var byteArrayContents = "";
+		var blockByteArray = [];
+		var dataByteArray = [];
 		
 		for (var i = 0; i < sizeX*sizeY*sizeZ; i++) {
-			byteArrayContents += String.fromCharCode(0);
+			blockByteArray.push(0);
+			dataByteArray.push(0);
 		}
 		 
 		this.schematic = {
@@ -54,11 +56,11 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 					},
 					Blocks: {
 						type: 7,
-						payload: byteArrayContents
+						payload: blockByteArray
 					},
 					Data: {
 						type: 7,
-						payload: byteArrayContents
+						payload: dataByteArray
 					}
 				}
 			}
@@ -126,7 +128,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 			return 0;
 		}
 		else {
-			return this.schematic.Schematic.payload.Blocks.payload.charCodeAt(this.getPosition(x,y,z)) & 0xff;
+			return this.schematic.Schematic.payload.Blocks.payload[this.getPosition(x,y,z)];
 		}
 	}
 	
@@ -143,7 +145,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 			return 0;
 		}
 		else {
-			return this.schematic.Schematic.payload.Data.payload.charCodeAt(this.getPosition(x,y,z)) & 0xff;
+			return this.schematic.Schematic.payload.Data.payload[this.getPosition(x,y,z)];
 		}
 	}
 
@@ -151,32 +153,41 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	 * Sets a block and its metadata to specified values 
 	 */
 	this.setBlockAndMetadata = function(x, y, z, blockID, metadata) {
-		var position = this.getPosition(x, y, z);
-		
-		this.schematic.Schematic.payload.Blocks.payload =
-			this.replaceAt(this.schematic.Schematic.payload.Blocks.payload, position, String.fromCharCode(blockID)); 
+		this.setBlockID(x, y, z, blockID);
+		this.setBlockMetadata(x, y, z, metadata);
+	}
 
-		this.schematic.Schematic.payload.Data.payload =
-			this.replaceAt(this.schematic.Schematic.payload.Data.payload, position, String.fromCharCode(metadata)); 
+	this.setBlockID = function(x, y, z, blockID) {
+		if (blockID > 0xff || blockID < 0x00) throw new Error("World_Schematic.setBlockId(): value must be from 0 to 255.");
+		var position = this.getPosition(x, y, z);
+		this.schematic.Schematic.payload.Blocks.payload[position] = blockID; 
+	}
+	
+	this.setBlockMetadata = function(x, y, z, blockMetadata) {
+		if (blockMetadata > 0xf || blockMetadata < 0x00) throw new Error("World_Schematic.setBlockMetadata(): value must be from 0 to 127.");
+		var position = this.getPosition(x, y, z);
+		this.schematic.Schematic.payload.Data.payload[position] = blockMetadata;
 	}
 
 	/**
+	 * Sets a block and its metadata to specified values and resizes the schematic if values fall out of bounds
+	 * 
 	 * @param x
 	 * @param y
 	 * @param z
-	 * @param blockId
+	 * @param blockID
 	 * @param metadata
 	 *
-	 * Sets a block and its metadata to specified values and resizes
-	 * the schematic if values fall out of bounds
 	 */
-	this.forceSetBlockAndMetadata = function(x, y, z, blockId, metadata) {
-		if ( x < 0 ||
-		     y < 0 ||
-		     z < 0 ||
-		     x > this.getSizeX() -1 ||
-		     y > this.getSizeY() -1 ||
-		     z > this.getSizeZ() -1 ) {
+	this.forceSetBlockAndMetadata = function(x, y, z, blockID, metadata) {
+		if (
+			x < 0 ||
+			y < 0 ||
+			z < 0 ||
+			x > this.getSizeX() -1 ||
+			y > this.getSizeY() -1 ||
+			z > this.getSizeZ() -1
+		) {
 			this.setDimensions(
 				// if dimension is greater than or equal to the total size of the
 				// schematic then set the size of the schematic to match; if not
@@ -197,7 +208,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 		if ( x < 0 ) x = 0;
 		if ( y < 0 ) y = 0;
 		if ( z < 0 ) z = 0;
-		this.setBlockAndMetadata(x, y, z, blockId, metadata);
+		this.setBlockAndMetadata(x, y, z, blockID, metadata);
 	}
 	
 	/**
@@ -298,7 +309,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	 * then the garbage collector should eventually free it up. 
 	 */
 	this.destroy = function() {
-		this.schematic = undefined;
+		delete this.schematic;
 	}
     
 	/**
@@ -308,9 +319,13 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	 * @return object containing values x, y, z representing the chunk position
 	 */
 	this.getBlockChunkPosition = function(x, y, z){
-	  x = Math.floor( x / 16 );
-	  y = Math.floor( y / 16 );
-	  z = Math.floor( z / 16 );
-	  return { x : x, y : y, z : z };
+		x = Math.floor( x / 16 );
+		y = Math.floor( y / 16 );
+		z = Math.floor( z / 16 );
+		return {
+	  		x: x,
+	  		y: y,
+	  		z: z
+	  	};
 	}
 }

@@ -21,7 +21,7 @@ com.mordritch.mcSim.NbtParser = function() {
 	this.binaryParser = new BinaryParser(true, false);
 	this.expectedStartingTag = this.TAG_Compound;
 
-	this.readByte = function(peekOnly) {return this.binaryParser.toByte(this.readBuffer(8),peekOnly)};
+	this.readByte = function(peekOnly) {return this.readBuffer(8,peekOnly).charCodeAt()};
 	this.readShort = function(peekOnly) {return this.binaryParser.toShort(this.readBuffer(16,peekOnly))};
 	this.readInt = function(peekOnly) {return this.binaryParser.toInt(this.readBuffer(32),peekOnly)};
 	this.readLong = function(peekOnly) {return this.binaryParser.toLong(this.readBuffer(64),peekOnly)};
@@ -29,7 +29,7 @@ com.mordritch.mcSim.NbtParser = function() {
 	this.readDouble = function(peekOnly) {return this.binaryParser.toDouble(this.readBuffer(64),peekOnly)};
 	this.readString = function() {return this.readBuffer(8 * this.readShort())};
 
-	this.writeByte = function(number) {return this.binaryParser.fromByte(number)};
+	this.writeByte = function(number) {return String.fromCharCode(number)};
 	this.writeShort = function(number) {return this.binaryParser.fromShort(number)};
 	this.writeInt = function(number) {return this.binaryParser.fromInt(number)};
 	this.writeLong = function(number) {return this.binaryParser.fromLong(number)};
@@ -200,7 +200,15 @@ com.mordritch.mcSim.NbtParser = function() {
 	}
 	
 	this.readTagData_byteArray = function() {
-		return this.readBuffer(this.readInt()*8);
+		var byteLength = this.readInt();
+		var byteString = this.readBuffer(byteLength*8);
+		var byteArray = [];
+
+		for (var i = 0; i < byteLength; i++) {
+			byteArray.push(byteString.charCodeAt(i) & 0xff);
+		}
+
+		return byteArray;
 	}
 	
 	this.readTagData_string = function() {
@@ -345,8 +353,15 @@ com.mordritch.mcSim.NbtParser = function() {
 		return this.writeDouble(number);
 	}
 	
-	this.writeTagData_byteArray = function(string) {
-		return this.writeInt(string.length) + string; 
+	this.writeTagData_byteArray = function(byteArray) {
+		var returnString = '';
+		for (
+			var i=0;
+			i<byteArray.length;
+			returnString += this.writeByte(byteArray[i++])
+		);
+
+		return this.writeInt(returnString.length) + returnString;
 	}
 	
 	this.writeTagData_string = function(string) {
@@ -362,7 +377,6 @@ com.mordritch.mcSim.NbtParser = function() {
 			returnData += this.writeTagData(ofTagId, data.list[i]);
 		}
 		
-		//return this.writeByte(0) + this.writeInt(0);
 		return this.writeByte(ofTagId) + this.writeInt(length) + returnData;
 	}
 	
