@@ -91,7 +91,6 @@ com.mordritch.mcSim.NbtParser = function() {
 			byte1 == 0x1f &&
 			byte2 == 0x8b
 		) {
-			console.log("Data GZipped, inflating first.");
 			var gzipObject = GZip.load(this.binaryNbtData);
 			this.binaryNbtData = '';
 			for (var i=0; i<gzipObject.data.length; i++) {
