@@ -1,12 +1,33 @@
 /*
  * Author: Jonathan Lydall
  * Website: http://www.mordritch.com/ 
- * Date: 2012-01-03
  * 
  */
 
-com.mordritch.mcSim.World_Schematic = function(schematic) {
+com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultSizeY, defaultSizeZ) {
 	this.schematic = schematic;
+	this.defaultSizeX = defaultSizeX;
+	this.defaultSizeY = defaultSizeY; 
+	this.defaultSizeZ = defaultSizeZ;
+	this.loadedTileEntities = {}; 
+	
+	this.construct = function() {
+		if (this.schematic == null) {
+			this.makeNew(this.defaultSizeX, this.defaultSizeY, this.defaultSizeZ);
+		}
+		else {
+			//Not all programs export TileTicks with schematics (EG: MCEdit), if there is no TileTicks NBT node, this creates it
+			if (typeof this.schematic.Schematic.payload.TileTicks == 'undefined')
+				this.schematic.Schematic.payload.TileTicks =
+					{
+						type: 9,
+						payload: {
+							ofType: 10,
+							list: []
+						}
+					}; 
+		}
+	}
 	
 	/**
 	 * Makes this instantiation generate and use a new schematic filled with air
@@ -39,15 +60,22 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 					Entities: {
 						type: 9,
 						payload: {
-							type: 10,
-							payload: new Array()
+							ofType: 10,
+							list: []
 						}
 					},
 					TileEntities: {
 						type: 9,
 						payload: {
-							type: 10,
-							payload: new Array()
+							ofType: 10,
+							list: []
+						}
+					},
+					TileTicks: {
+						type: 9,
+						payload: {
+							ofType: 10,
+							list: []
 						}
 					},
 					Materials: {
@@ -111,10 +139,8 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 			throw new Error("DataSchematic.getPosition(): z is out of bounds.")
 		
 		return x + (z * schematicSizeX) + (y * schematicSizeX * schematicSizeZ);
-		return y + z * this.chunkSizeY + x * this.chunkSizeY * this.chunkSizeZ;
-
 	}
-
+	
 	/**
 	 * Returns the blockID at specified minecraft world co-ordinates
 	 */
@@ -216,47 +242,73 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	 * 
 	 * One can use the offset to decide where the old data will be in relation
 	 * to the updated size
+	 * 
+	 * It's important that tileEntities, entities and tickdata are dumped from the world into the schematic
+	 * before processing so that their coordinates can be updated accordingly
 	 */
 	this.setDimensions = function(sizeX, sizeY, sizeZ, offsetX, offsetY, offsetZ) {
-		var oldBlocks = this.schematic.Schematic.payload.Blocks.payload;
-		var oldData = this.schematic.Schematic.payload.Data.payload;
+		var oldBlocksArray = this.schematic.Schematic.payload.Blocks.payload;
+		var oldDataArray = this.schematic.Schematic.payload.Data.payload;
 		var oldSizeX = this.schematic.Schematic.payload.Width.payload;
 		var oldSizeY = this.schematic.Schematic.payload.Height.payload;
 		var oldSizeZ = this.schematic.Schematic.payload.Length.payload;
 		
-		var fillWith = String.fromCharCode(0);
-		var newString = "";
-		while (newString.length < sizeX*sizeY*sizeZ)
-			 newString += fillWith;
-			 
-		this.schematic.Schematic.payload.Blocks.payload = newString;
-		this.schematic.Schematic.payload.Data.payload = newString;
+		this.schematic.Schematic.payload.Blocks.payload = [];
+		this.schematic.Schematic.payload.Data.payload = [];
 		this.schematic.Schematic.payload.Width.payload = sizeX;
 		this.schematic.Schematic.payload.Height.payload = sizeY;
 		this.schematic.Schematic.payload.Length.payload = sizeZ;
 		
-		var oldBlockId;
-		var oldBlockMetadata;
-		
-		for(var ix =0; ix < oldSizeX; ix++) {
-			for(var iy =0; iy < oldSizeY; iy++) {
-				for(var iz =0; iz < oldSizeZ; iz++) {
-					//Don't migrate this block unless it data falls within the new dimensions
-					//after taking the desired offset into account:
+		//Migrate blocks and data:
+		var newOffSet = 0;
+		for (var iy = 0; iy < sizeY; iy++) {
+			for (var iz = 0; iz < sizeZ; iz++) {
+				for (var ix = 0; ix < sizeX; ix++) {
+					//For loops deliberately nested such that getPosition would increment normally
 					if (
-						ix + offsetX >= 0 && ix + offsetX < sizeX
+						ix - offsetX >= 0 && ix - offsetX < oldSizeX
 						&&
-						iy + offsetY >= 0 && iy + offsetY < sizeY
+						iy - offsetY >= 0 && iy - offsetY < oldSizeY
 						&&
-						iz + offsetZ >= 0 && iz + offsetZ < sizeZ
+						iz - offsetZ >= 0 && iz - offsetZ < oldSizeZ
 					) {
-						oldBlockId = oldBlocks.charCodeAt(this.getPosition(ix, iy, iz, oldSizeX, oldSizeY, oldSizeZ));
-						oldBlockMetadata = oldData.charCodeAt(this.getPosition(ix, iy, iz, oldSizeX, oldSizeY, oldSizeZ));
-						
-						this.setBlockAndMetadata(ix + offsetX, iy + offsetY, iz + offsetZ, oldBlockId, oldBlockMetadata);
+						var oldOffSet = this.getPosition(ix-offsetX, iy-offsetY, iz-offsetZ, oldSizeX, oldSizeY, oldSizeZ);
+
+						this.schematic.Schematic.payload.Blocks.payload[newOffSet] = oldBlocksArray[oldOffSet];
+						this.schematic.Schematic.payload.Data.payload[newOffSet] = oldDataArray[oldOffSet];
 					}
+					else {
+						//out of range, set it to blank
+						this.schematic.Schematic.payload.Blocks.payload[newOffSet] = 0;
+						this.schematic.Schematic.payload.Data.payload[newOffSet] = 0;
+					}
+					newOffSet++;
 				}
 			}
+		}
+		
+		//Migrate tile entities
+		var tileEntities = this.schematic.Schematic.payload.TileEntities.payload.list;
+		for (var i = 0; i < tileEntities.length; i++) {
+			tileEntities[i].x.payload = tileEntities[i].x.payload + offsetX;
+			tileEntities[i].y.payload = tileEntities[i].y.payload + offsetY;
+			tileEntities[i].z.payload = tileEntities[i].z.payload + offsetZ;
+		}
+		
+		//Migrate entities
+		var entities = this.schematic.Schematic.payload.Entities.payload.list;
+		for (var i = 0; i < entities.length; i++) {
+			entities[i].pos.payload[0] = entities[i].pos.payload[0] + offsetX;
+			entities[i].pos.payload[1] = entities[i].pos.payload[1] + offsetX;
+			entities[i].pos.payload[2] = entities[i].pos.payload[2] + offsetX;
+		}
+		
+		//Migrate tick data
+		var tileTicks = this.schematic.Schematic.payload.TileTicks.payload.list;
+		for (var i = 0; i < tileTicks.length; i++) {
+			tileTicks[i].x.payload = tileTicks[i].x.payload + offsetX;
+			tileTicks[i].y.payload = tileTicks[i].y.payload + offsetY;
+			tileTicks[i].z.payload = tileTicks[i].z.payload + offsetZ;
 		}
 	}
 	
@@ -282,24 +334,45 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	}
 	
 	/**
-	 * Retrieve a Tile Entity
+	 * @return {Array}	All TileEntities as an array of NBT objects
 	 */
-	this.getTileEntity = function(x, y, z) {
-		//TODO: Implement
+	this.getTileEntities = function() {
+		return this.schematic.Schematic.payload.TileEntities.payload.list;
 	}
 	
 	/**
-	 * Retrieve an entity
+	 * @param	tileEntities	All TileEntities as an array of NBT objects
 	 */
-	this.getEntity = function(x, y, z) {
-		//TODO: Implement
+	this.setTileEntities = function(tileEntities) {
+		this.schematic.Schematic.payload.TileEntities.payload.payload = tileEntities;
 	}
 	
 	/**
-	 * Replaces a character in a string at a specific offset
+	 * @return {Array}	All TileTicks as an array of NBT objects
 	 */
-	this.replaceAt = function(string, index, character) {
-		return string.substr(0,index) + character + string.substr(index+character.length);
+	this.getTickData = function() {
+		return this.schematic.Schematic.payload.TileTicks.payload.list;
+	}
+	
+	/**
+	 * @param	tileTicks	All TileTicks as an array of NBT objects
+	 */
+	this.setTickData = function(tileTicks) {
+		this.schematic.Schematic.payload.TileTicks.payload.payload = tileTicks;
+	}
+	
+	/**
+	 * @return {Array}	All Entities as an array of NBT objects
+	 */
+	this.getEntities = function() {
+		return this.schematic.Schematic.payload.Entities.payload.list;
+	}
+	
+	/**
+	 * @param	entities	All Entities as an array of NBT objects
+	 */
+	this.setEntities = function(entities) {
+		this.schematic.Schematic.payload.Entities.payload.payload = entities;
 	}
 	
 	/**
@@ -328,4 +401,6 @@ com.mordritch.mcSim.World_Schematic = function(schematic) {
 	  		z: z
 	  	};
 	}
+
+	this.construct();	
 }

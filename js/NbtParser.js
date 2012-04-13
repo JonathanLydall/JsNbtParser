@@ -1,7 +1,6 @@
 /*
  * Author: Jonathan Lydall
  * Website: http://www.mordritch.com/ 
- * Date: 2012-01-09
  * 
  */
 
@@ -21,7 +20,7 @@ com.mordritch.mcSim.NbtParser = function() {
 	this.binaryParser = new BinaryParser(true, false);
 	this.expectedStartingTag = this.TAG_Compound;
 
-	this.readByte = function(peekOnly) {return this.readBuffer(8,peekOnly).charCodeAt()};
+	this.readByte = function(peekOnly) {return this.binaryParser.toByte(this.readBuffer(8,peekOnly))};
 	this.readShort = function(peekOnly) {return this.binaryParser.toShort(this.readBuffer(16,peekOnly))};
 	this.readInt = function(peekOnly) {return this.binaryParser.toInt(this.readBuffer(32),peekOnly)};
 	this.readLong = function(peekOnly) {return this.binaryParser.toLong(this.readBuffer(64),peekOnly)};
@@ -85,6 +84,22 @@ com.mordritch.mcSim.NbtParser = function() {
 		this.binaryNbtData = binaryNbtData;
 		this.pointer = 0;
 		
+		//Check if it's gzipped (starts with 0x1F and 0x8B):
+		var byte1 = this.readByte();
+		var byte2 = this.readByte();
+		if (
+			byte1 == 0x1f &&
+			byte2 == 0x8b
+		) {
+			console.log("Data GZipped, inflating first.");
+			var gzipObject = GZip.load(this.binaryNbtData);
+			this.binaryNbtData = '';
+			for (var i=0; i<gzipObject.data.length; i++) {
+				this.binaryNbtData += gzipObject.data[i];
+			}
+		}
+		
+		this.pointer = 0;
 		starterTagId = this.readByte();
 
 		//I don't know if it's alpha levels in general, or my chunk extractor/decompressor, but
@@ -232,6 +247,7 @@ com.mordritch.mcSim.NbtParser = function() {
 		var tagId;
 		var tagName;
 		
+		
 		tagId = this.readByte();
 		while (tagId != this.TAG_End) {
 			tagName = this.readString();
@@ -249,7 +265,7 @@ com.mordritch.mcSim.NbtParser = function() {
 	 * 													It seems that Alpha level chunks do this.
 	 * @return	{string}
 	 */
-	this.encode = function(data, encloseInUnnamedCompoundTag) {
+	this.encode = function(data, encloseInUnnamedCompoundTag, gzipDeflate) {
 		var returnData = "";
 		var starterTagId;
 		var starterTagName;
@@ -276,7 +292,7 @@ com.mordritch.mcSim.NbtParser = function() {
 		returnData += this.writeByte(starterTagId);
 		returnData += this.writeString(starterTagName);
 		returnData += this.writeTagData(starterTagId, data[starterTagName].payload);
-		if (encloseInUnnamedCompoundTag) returnData += this.writeByte(this.TAG_End);  
+		if (encloseInUnnamedCompoundTag) returnData += this.writeByte(this.TAG_End);
 		
 		return returnData;
 	}
