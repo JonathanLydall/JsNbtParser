@@ -1,0 +1,9 @@
+;The file is a listing of all javascript files
+
+;When the project is built for release, the files are merged into a single file which is then minified
+
+src\binary-parser.js
+src\deflate.js
+src\inflate.js
+src\gzip.js
+src\NbtParser.js

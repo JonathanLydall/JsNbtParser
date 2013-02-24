@@ -30,6 +30,13 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 	}
 	
 	/**
+	 * Returns a referrence which can be used by the nbtParser to save 
+	 */
+	this.getNbtData = function() {
+		return this.schematic;
+	}
+	
+	/**
 	 * Makes this instantiation generate and use a new schematic filled with air
 	 */
 	this.makeNew = function(sizeX, sizeY, sizeZ) {
@@ -179,14 +186,14 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 	 * Sets a block and its metadata to specified values 
 	 */
 	this.setBlockAndMetadata = function(x, y, z, blockID, metadata) {
-		this.setBlockID(x, y, z, blockID);
+		if (blockID > 0xff || blockID < 0x00) throw new Error("World_Schematic.setBlockAndMetadata(): blockID value must be from 0 to 255.");
+		var position = this.getPosition(x, y, z);
+		this.schematic.Schematic.payload.Blocks.payload[position] = blockID; 
 		this.setBlockMetadata(x, y, z, metadata);
 	}
 
 	this.setBlockID = function(x, y, z, blockID) {
-		if (blockID > 0xff || blockID < 0x00) throw new Error("World_Schematic.setBlockId(): value must be from 0 to 255.");
-		var position = this.getPosition(x, y, z);
-		this.schematic.Schematic.payload.Blocks.payload[position] = blockID; 
+		this.setBlockAndMetadata(x, y, z, blockID, 0);
 	}
 	
 	this.setBlockMetadata = function(x, y, z, blockMetadata) {
@@ -264,7 +271,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 		for (var iy = 0; iy < sizeY; iy++) {
 			for (var iz = 0; iz < sizeZ; iz++) {
 				for (var ix = 0; ix < sizeX; ix++) {
-					//For loops deliberately nested such that getPosition would increment normally
+					//For loops deliberately nested in this order so that getPosition increments normally
 					if (
 						ix - offsetX >= 0 && ix - offsetX < oldSizeX
 						&&
@@ -287,28 +294,247 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 			}
 		}
 		
-		//Migrate tile entities
+		//Migrate tile entities and any which are no longer within the schematic dimensions
 		var tileEntities = this.schematic.Schematic.payload.TileEntities.payload.list;
-		for (var i = 0; i < tileEntities.length; i++) {
+		for (var i = 0, newTileEntities = []; i < tileEntities.length; i++) {
 			tileEntities[i].x.payload = tileEntities[i].x.payload + offsetX;
 			tileEntities[i].y.payload = tileEntities[i].y.payload + offsetY;
 			tileEntities[i].z.payload = tileEntities[i].z.payload + offsetZ;
+
+			if (
+				tileEntities[i].x.payload < sizeX && 
+				tileEntities[i].y.payload < sizeY && 
+				tileEntities[i].z.payload < sizeZ
+			) {
+				newTileEntities.push(tileEntities[i]);
+			}
+		}
+		this.schematic.Schematic.payload.TileEntities.payload.list = newTileEntities;
+		
+		//Migrate entities and any which are no longer within the schematic dimensions
+		var entities = this.schematic.Schematic.payload.Entities.payload.list;
+		for (var i = 0, newEntities = []; i < entities.length; i++) {
+			entities[i].Pos.payload.list[0] = entities[i].Pos.payload[0].list + offsetX;
+			entities[i].Pos.payload.list[1] = entities[i].Pos.payload[1].list + offsetY;
+			entities[i].Pos.payload.list[2] = entities[i].Pos.payload[2].list + offsetZ;
+
+			if (
+				entities[i].Pos.payload.list[0] < sizeX && 
+				entities[i].Pos.payload.list[1] < sizeY && 
+				entities[i].Pos.payload.list[2] < sizeZ
+			) {
+				newEntities.push(entities[i]);
+			}
+		}
+		this.schematic.Schematic.payload.Entities.payload.list = newEntities;
+		
+		//Migrate tick data and any which are no longer within the schematic dimensions
+		var tileTicks = this.schematic.Schematic.payload.TileTicks.payload.list;
+		for (var i = 0, newTileTicks = []; i < tileTicks.length; i++) {
+			tileTicks[i].x.payload = tileTicks[i].x.payload + offsetX;
+			tileTicks[i].y.payload = tileTicks[i].y.payload + offsetY;
+			tileTicks[i].z.payload = tileTicks[i].z.payload + offsetZ;
+
+			if (
+				tileTicks[i].x.payload < sizeX && 
+				tileTicks[i].y.payload < sizeY && 
+				tileTicks[i].z.payload < sizeZ
+			) {
+				newTileTicks.push(tileTicks[i]);
+			}
+			this.schematic.Schematic.payload.TileTicks.payload.list = newTileTicks;
+		}
+	}
+	
+	/**
+	 * Rotates a selection of blocks where amount is the number of times to rotate the area clockwise by 90 degrees
+	 * 
+	 * Assumes that tickData and entities 
+	 */
+	this.rotateSelection = function(amount, startX, startZ, sizeX, sizeZ) {
+		//TODO: Assumes for whole schematic, ignoring start and size parameters
+		var AMOUNT_90 = 90;
+		var AMOUNT_180 = 180;
+		var AMOUNT_270 = 270;
+		
+		var newBlocks = [];
+		var newData = [];
+		var newSizeX, newSizeZ;
+		var deltaX, deltaZ; 
+		var blockId, blockMetadata;
+		var oldPosition;
+		var oldSizeX = this.getSizeX(); 
+		var oldSizeY = this.getSizeY(); 
+		var oldSizeZ = this.getSizeZ(); 
+		var oldPosX, oldPosZ, newPosX, newPosZ;
+		
+		//For loop deliberately nested in that order so that getPosition function result increments normally, allowing us to just "push" into our array
+		switch (amount) {
+			case AMOUNT_90:
+				newSizeX = oldSizeZ;
+				newSizeZ = oldSizeX;
+				for (var y=0; y<oldSizeY; y++) { for (var z=0; z<newSizeZ; z++) { for (var x=0; x<newSizeX; x++) {
+					oldPosX = z;
+					oldPosZ = newSizeX - x - 1;
+					oldPosition = this.getPosition(oldPosX, y, oldPosZ, oldSizeX, oldSizeY, oldSizeZ);
+
+					blockId = this.schematic.Schematic.payload.Blocks.payload[oldPosition];
+					blockMetadata = this.schematic.Schematic.payload.Data.payload[oldPosition];
+
+					newBlocks.push(blockId);
+					newData.push(blockMetadata);
+				} }	}
+				this.schematic.Schematic.payload.Width.payload = newSizeX;
+				this.schematic.Schematic.payload.Length.payload = newSizeZ;
+				break;
+			case AMOUNT_180:
+				newSizeX = oldSizeX;
+				newSizeZ = oldSizeZ;
+				for (var y=0; y<oldSizeY; y++) { for (var z=0; z<newSizeZ; z++) { for (var x=0; x<newSizeX; x++) {
+					oldPosition = this.getPosition(oldSizeX-x-1, y, oldSizeZ-z-1, oldSizeX, oldSizeY, oldSizeZ);
+
+					blockId = this.schematic.Schematic.payload.Blocks.payload[oldPosition];
+					blockMetadata = this.schematic.Schematic.payload.Data.payload[oldPosition];
+
+					newBlocks.push(blockId);
+					newData.push(blockMetadata);
+				} }	}
+				break;
+			case AMOUNT_270:
+				newSizeX = oldSizeZ;
+				newSizeZ = oldSizeX;
+				for (var y=0; y<oldSizeY; y++) { for (var z=0; z<newSizeZ; z++) { for (var x=0; x<newSizeX; x++) {
+					oldPosition = this.getPosition(oldSizeX-z-1, y, x, oldSizeX, oldSizeY, oldSizeZ);
+
+					blockId = this.schematic.Schematic.payload.Blocks.payload[oldPosition];
+					blockMetadata = this.schematic.Schematic.payload.Data.payload[oldPosition];
+
+					newBlocks.push(blockId);
+					newData.push(blockMetadata);
+				} }	}
+				this.schematic.Schematic.payload.Width.payload = newSizeX;
+				this.schematic.Schematic.payload.Length.payload = newSizeZ;
+				break;
+			default: throw new Error("Unexpected amount: " + amount);
+		}
+		this.schematic.Schematic.payload.Blocks.payload = newBlocks;
+		this.schematic.Schematic.payload.Data.payload = newData;
+		
+		//Migrate tile entities
+		var tileEntities = this.schematic.Schematic.payload.TileEntities.payload.list;
+		switch (amount) {
+			case AMOUNT_90:
+				for (var i = 0; i < tileEntities.length; i++) {
+					oldPosX = tileEntities[i].x.payload;
+					oldPosZ = tileEntities[i].z.payload;
+					newPosX = oldSizeZ - oldPosZ - 1;
+					newPosZ = oldPosX;
+					
+					tileEntities[i].x.payload = newPosX; 
+					tileEntities[i].z.payload = newPosZ;
+				}
+				break;
+			case AMOUNT_180:
+				for (var i = 0; i < tileEntities.length; i++) {
+					oldPosX = tileEntities[i].x.payload;
+					oldPosZ = tileEntities[i].z.payload;
+					newPosX = oldSizeX - oldPosX - 1;
+					newPosZ = oldSizeZ - oldPosZ - 1;
+					
+					tileEntities[i].x.payload = newPosX; 
+					tileEntities[i].z.payload = newPosZ;
+				}
+				break;
+			case AMOUNT_270:
+				for (var i = 0; i < tileEntities.length; i++) {
+					oldPosX = tileEntities[i].x.payload;
+					oldPosZ = tileEntities[i].z.payload;
+					newPosX = oldPosZ;
+					newPosZ = oldSizeX - oldPosX - 1;
+					
+					tileEntities[i].x.payload = newPosX; 
+					tileEntities[i].z.payload = newPosZ;
+				}
+				break;
+			default: throw new Error("Unexpected amount: " + amount);
 		}
 		
 		//Migrate entities
 		var entities = this.schematic.Schematic.payload.Entities.payload.list;
-		for (var i = 0; i < entities.length; i++) {
-			entities[i].pos.payload[0] = entities[i].pos.payload[0] + offsetX;
-			entities[i].pos.payload[1] = entities[i].pos.payload[1] + offsetX;
-			entities[i].pos.payload[2] = entities[i].pos.payload[2] + offsetX;
+		switch (amount) {
+			case AMOUNT_90:
+				for (var i = 0; i < entities.length; i++) {
+					oldPosX = entities[i].Pos.payload.list[0];
+					oldPosZ = entities[i].Pos.payload.list[2];
+					newPosX = oldSizeZ - oldPosZ - 1;
+					newPosZ = oldPosX;
+					
+					entities[i].Pos.payload.list[0] = newPosX;
+					entities[i].Pos.payload.list[2] = newPosZ;
+				}
+				break;
+			case AMOUNT_180:
+				for (var i = 0; i < entities.length; i++) {
+					oldPosX = entities[i].Pos.payload.list[0];
+					oldPosZ = entities[i].Pos.payload.list[2];
+					newPosX = oldSizeX - oldPosX - 1;
+					newPosZ = oldSizeZ - oldPosZ - 1;
+					
+					entities[i].Pos.payload.list[0] = newPosX;
+					entities[i].Pos.payload.list[2] = newPosZ;
+				}
+				break;
+			case AMOUNT_270:
+				for (var i = 0; i < entities.length; i++) {
+					oldPosX = entities[i].Pos.payload.list[0];
+					oldPosZ = entities[i].Pos.payload.list[2];
+					newPosX = oldPosZ;
+					newPosZ = oldSizeX - oldPosX - 1;
+					
+					entities[i].Pos.payload.list[0] = newPosX;
+					entities[i].Pos.payload.list[2] = newPosZ;
+				}
+				break;
+			default: throw new Error("Unexpected amount: " + amount);
 		}
 		
 		//Migrate tick data
 		var tileTicks = this.schematic.Schematic.payload.TileTicks.payload.list;
-		for (var i = 0; i < tileTicks.length; i++) {
-			tileTicks[i].x.payload = tileTicks[i].x.payload + offsetX;
-			tileTicks[i].y.payload = tileTicks[i].y.payload + offsetY;
-			tileTicks[i].z.payload = tileTicks[i].z.payload + offsetZ;
+		switch (amount) {
+			case AMOUNT_90:
+				for (var i = 0; i < tileTicks.length; i++) {
+					oldPosX = tileTicks[i].x.payload
+					oldPosZ = tileTicks[i].z.payload
+					newPosX = oldSizeZ - oldPosZ - 1;
+					newPosZ = oldPosX;
+
+					tileTicks[i].x.payload = newPosX;
+					tileTicks[i].z.payload = newPosZ;
+				}
+				break;
+			case AMOUNT_180:
+				for (var i = 0; i < tileTicks.length; i++) {
+					oldPosX = tileTicks[i].x.payload
+					oldPosZ = tileTicks[i].z.payload
+					newPosX = oldSizeX - oldPosX - 1;
+					newPosZ = oldSizeZ - oldPosZ - 1;
+
+					tileTicks[i].x.payload = newPosX;
+					tileTicks[i].z.payload = newPosZ;
+				}
+				break;
+			case AMOUNT_270:
+				for (var i = 0; i < tileTicks.length; i++) {
+					oldPosX = tileTicks[i].x.payload
+					oldPosZ = tileTicks[i].z.payload
+					newPosX = oldPosZ;
+					newPosZ = oldSizeX - oldPosX - 1;
+
+					tileTicks[i].x.payload = newPosX;
+					tileTicks[i].z.payload = newPosZ;
+				}
+				break;
+			default: throw new Error("Unexpected amount: " + amount);
 		}
 	}
 	
@@ -334,6 +560,20 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 	}
 	
 	/**
+	 * @return {Array}	All Entities as an array of NBT objects
+	 */
+	this.getEntities = function() {
+		return this.schematic.Schematic.payload.Entities.payload.list;
+	}
+	
+	/**
+	 * @param	entities	All Entities as an array of NBT objects
+	 */
+	this.setEntities = function(entities) {
+		this.schematic.Schematic.payload.Entities.payload.list = entities;
+	}
+	
+	/**
 	 * @return {Array}	All TileEntities as an array of NBT objects
 	 */
 	this.getTileEntities = function() {
@@ -344,7 +584,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 	 * @param	tileEntities	All TileEntities as an array of NBT objects
 	 */
 	this.setTileEntities = function(tileEntities) {
-		this.schematic.Schematic.payload.TileEntities.payload.payload = tileEntities;
+		this.schematic.Schematic.payload.TileEntities.payload.list = tileEntities;
 	}
 	
 	/**
@@ -358,21 +598,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 	 * @param	tileTicks	All TileTicks as an array of NBT objects
 	 */
 	this.setTickData = function(tileTicks) {
-		this.schematic.Schematic.payload.TileTicks.payload.payload = tileTicks;
-	}
-	
-	/**
-	 * @return {Array}	All Entities as an array of NBT objects
-	 */
-	this.getEntities = function() {
-		return this.schematic.Schematic.payload.Entities.payload.list;
-	}
-	
-	/**
-	 * @param	entities	All Entities as an array of NBT objects
-	 */
-	this.setEntities = function(entities) {
-		this.schematic.Schematic.payload.Entities.payload.payload = entities;
+		this.schematic.Schematic.payload.TileTicks.payload.list = tileTicks;
 	}
 	
 	/**
