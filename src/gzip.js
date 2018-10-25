@@ -9,11 +9,11 @@
 	
 	var readByte = function(input, offset) {
 		return input.charCodeAt(offset) & 0xff;
-	}
+	};
 	
 	var writeByte = function(input) {
 		return String.fromCharCode(input);
-	}
+	};
 	
 	var readUInt32 = function(input, offset) {
 		returnValue = (
@@ -24,7 +24,7 @@
 		);
 		//ECMA bitwise operations work as signed 32 bit ints, will need conversion
 		return (returnValue < 0) ? returnValue + 0x100000000 : returnValue;
-	}
+	};
 	
 	var writeUInt32 = function(input) {
 		if (input < 0 || input > 0xffffffff)
@@ -35,16 +35,16 @@
 			String.fromCharCode(input >> 8 & 0xff) +
 			String.fromCharCode(input >> 16 & 0xff) +
 			String.fromCharCode(input >> 24 & 0xff);
-	}
+	};
 	
 	var hasGzipIdentifier = function(input) {
 		return (
 			readByte(input.substr(0,1)) == GZIP_ID1 &&
 			readByte(input.substr(1,1)) == GZIP_ID2
 		);
-	}
+	};
 	
-	var GZIP_ID1 = 0x1f;
+	var GZIP_ID1 = 0x1f; //GZIP identifier, all GZIP files start with these two bytes
 	var GZIP_ID2 = 0x8b;
 	var COMPRESSION_METHOD = 0x08; //0x08 = Deflate
 	var GZIP_FLAGS = 0x00;
@@ -83,7 +83,7 @@
 			writeByte(OS_IDENTIFIER);				// Operating System
 		
 		return header;
-	}
+	};
 	
 
 	function hasFlag(input, flag) {
@@ -91,7 +91,9 @@
 	}
 
 	var deflate = function(input) {
-		var header = writeHeader();
+		var header =
+			writeHeader();
+		
 		var deflatedData =
 			zip_deflate(input);
 
@@ -100,23 +102,25 @@
 			writeUInt32(input.length);	// Length of the input file
 			
 		return header + deflatedData + footer;
-	}
+	};
 	
 	var deflateAsync = function(options) {
-		var data = options.data;
+		var input = options.data;
 		var successCallback = options.success;
 		var progressCallback = options.progress;
 		var cancelCallback = options.cancel;
 
 		zip_deflate_async({
-			data: data,
-			success: function(returnedData, returnedCrc32) {
-				var returnData =
-					writeHeader() +
-					returnedData +
-					writeUInt32(crc32(options.data)) +		
-					//writeUInt32(returnedCrc32) +		
-					writeUInt32(data.length);
+			data: input,
+			success: function(deflatedData, returnedCrc32) {
+				var header = 
+					writeHeader();
+				
+				var footer = 
+					writeUInt32(crc32(input)) +	// CRC32 of the input file
+					writeUInt32(input.length);	// Length of the input file
+					
+				var returnData = header + deflatedData + footer;
 					 
 				successCallback(returnData);
 			},
@@ -127,7 +131,7 @@
 				cancelCallback();
 			}
 		});
-	}
+	};
 	
 	
 	var inflate = function(input) {
@@ -153,7 +157,7 @@
 		
 		if (hasFlag(flagsByte, BIT_FLAG_FEXTRA)) {
 			//gzip header has extra fields present, reading of which not implemented
-			throw("gzip.inflate() - Extra fields flag is set, not supported in this implemented");
+			throw("gzip.inflate() - Extra fields flag is set, not supported in this implementation.");
 		}
 
 		if (hasFlag(flagsByte, BIT_FLAG_FNAME)) {
@@ -202,15 +206,15 @@
 		console.log("gzip.inflate() - Finished in %sms.", new Date().getTime() - startTime);
 		
 		return uncompressedData;
-	}
+	};
 	
 	function inflateAsync(options) {
 	    if (typeof options.data == "undefined")
-	    	throw("inflateAsync() - .data not set") 
+	    	throw("inflateAsync() - .data not set");
 	    if (typeof options.success != "function")
-	    	throw("inflateAsync() - .success not set or not a function") 
+	    	throw("inflateAsync() - .success not set or not a function"); 
 	    if (typeof options.progress != "undefined" && typeof options.progress != "function")
-	    	throw("inflateAsync() - .progress not a function") 
+	    	throw("inflateAsync() - .progress not a function");
 
 		var pointer = 0;
 		var input = options.data;

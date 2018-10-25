@@ -27,14 +27,14 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 						}
 					}; 
 		}
-	}
+	};
 	
 	/**
 	 * Returns a referrence which can be used by the nbtParser to save 
 	 */
 	this.getNbtData = function() {
 		return this.schematic;
-	}
+	};
 	
 	/**
 	 * Makes this instantiation generate and use a new schematic filled with air
@@ -100,7 +100,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 				}
 			}
 		};
-	}
+	};
 
 	/**
 	 * Returns position within the bytearray derived from minecraft coordinates
@@ -137,16 +137,16 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 		if (typeof overrideSizeZ != "undefined") schematicSizeZ = overrideSizeZ; 
 		
 		if (x >= schematicSizeX || x < 0)
-			throw new Error("DataSchematic.getPosition(): x is out of bounds.")
+			throw new Error("DataSchematic.getPosition(): x is out of bounds.");
 		
 		if (y >= schematicSizeY || y < 0)
-			throw new Error("DataSchematic.getPosition(): y is out of bounds.")
+			throw new Error("DataSchematic.getPosition(): y is out of bounds.");
 		
 		if (z >= schematicSizeZ || z < 0)
-			throw new Error("DataSchematic.getPosition(): z is out of bounds.")
+			throw new Error("DataSchematic.getPosition(): z is out of bounds.");
 		
 		return x + (z * schematicSizeX) + (y * schematicSizeX * schematicSizeZ);
-	}
+	};
 	
 	/**
 	 * Returns the blockID at specified minecraft world co-ordinates
@@ -163,7 +163,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 		else {
 			return this.schematic.Schematic.payload.Blocks.payload[this.getPosition(x,y,z)];
 		}
-	}
+	};
 	
 	/**
 	 * Returns the meta data for block at specified minecraft world co-ordinates
@@ -180,7 +180,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 		else {
 			return this.schematic.Schematic.payload.Data.payload[this.getPosition(x,y,z)];
 		}
-	}
+	};
 
 	/**
 	 * Sets a block and its metadata to specified values 
@@ -190,17 +190,17 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 		var position = this.getPosition(x, y, z);
 		this.schematic.Schematic.payload.Blocks.payload[position] = blockID; 
 		this.setBlockMetadata(x, y, z, metadata);
-	}
+	};
 
 	this.setBlockID = function(x, y, z, blockID) {
 		this.setBlockAndMetadata(x, y, z, blockID, 0);
-	}
+	};
 	
 	this.setBlockMetadata = function(x, y, z, blockMetadata) {
 		if (blockMetadata > 0xf || blockMetadata < 0x00) throw new Error("World_Schematic.setBlockMetadata(): value must be from 0 to 127.");
 		var position = this.getPosition(x, y, z);
 		this.schematic.Schematic.payload.Data.payload[position] = blockMetadata;
-	}
+	};
 
 	/**
 	 * Sets a block and its metadata to specified values and resizes the schematic if values fall out of bounds
@@ -242,7 +242,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 		if ( y < 0 ) y = 0;
 		if ( z < 0 ) z = 0;
 		this.setBlockAndMetadata(x, y, z, blockID, metadata);
-	}
+	};
 	
 	/**
 	 * Change the dimensions of the schematic
@@ -344,7 +344,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 			}
 			this.schematic.Schematic.payload.TileTicks.payload.list = newTileTicks;
 		}
-	}
+	};
 	
 	/**
 	 * Rotates a selection of blocks where amount is the number of times to rotate the area clockwise by 90 degrees
@@ -503,8 +503,8 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 		switch (amount) {
 			case AMOUNT_90:
 				for (var i = 0; i < tileTicks.length; i++) {
-					oldPosX = tileTicks[i].x.payload
-					oldPosZ = tileTicks[i].z.payload
+					oldPosX = tileTicks[i].x.payload;
+					oldPosZ = tileTicks[i].z.payload;
 					newPosX = oldSizeZ - oldPosZ - 1;
 					newPosZ = oldPosX;
 
@@ -514,8 +514,8 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 				break;
 			case AMOUNT_180:
 				for (var i = 0; i < tileTicks.length; i++) {
-					oldPosX = tileTicks[i].x.payload
-					oldPosZ = tileTicks[i].z.payload
+					oldPosX = tileTicks[i].x.payload;
+					oldPosZ = tileTicks[i].z.payload;
 					newPosX = oldSizeX - oldPosX - 1;
 					newPosZ = oldSizeZ - oldPosZ - 1;
 
@@ -525,8 +525,8 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 				break;
 			case AMOUNT_270:
 				for (var i = 0; i < tileTicks.length; i++) {
-					oldPosX = tileTicks[i].x.payload
-					oldPosZ = tileTicks[i].z.payload
+					oldPosX = tileTicks[i].x.payload;
+					oldPosZ = tileTicks[i].z.payload;
 					newPosX = oldPosZ;
 					newPosZ = oldSizeX - oldPosX - 1;
 
@@ -536,70 +536,70 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 				break;
 			default: throw new Error("Unexpected amount: " + amount);
 		}
-	}
+	};
 	
 	/**
 	 * Returns the x size of the schematic in terms minecraft co-ordinate system
 	 */
 	this.getSizeX = function() {
 		return this.schematic.Schematic.payload.Width.payload;
-	}
+	};
 	
 	/**
 	 * Returns the y size of the schematic in terms minecraft co-ordinate system
 	 */
 	this.getSizeY = function() {
 		return this.schematic.Schematic.payload.Height.payload;
-	}
+	};
 	
 	/**
 	 * Returns the z size of the schematic in terms minecraft co-ordinate system
 	 */
 	this.getSizeZ = function() {
 		return this.schematic.Schematic.payload.Length.payload;
-	}
+	};
 	
 	/**
 	 * @return {Array}	All Entities as an array of NBT objects
 	 */
 	this.getEntities = function() {
 		return this.schematic.Schematic.payload.Entities.payload.list;
-	}
+	};
 	
 	/**
 	 * @param	entities	All Entities as an array of NBT objects
 	 */
 	this.setEntities = function(entities) {
 		this.schematic.Schematic.payload.Entities.payload.list = entities;
-	}
+	};
 	
 	/**
 	 * @return {Array}	All TileEntities as an array of NBT objects
 	 */
 	this.getTileEntities = function() {
 		return this.schematic.Schematic.payload.TileEntities.payload.list;
-	}
+	};
 	
 	/**
 	 * @param	tileEntities	All TileEntities as an array of NBT objects
 	 */
 	this.setTileEntities = function(tileEntities) {
 		this.schematic.Schematic.payload.TileEntities.payload.list = tileEntities;
-	}
+	};
 	
 	/**
 	 * @return {Array}	All TileTicks as an array of NBT objects
 	 */
 	this.getTickData = function() {
 		return this.schematic.Schematic.payload.TileTicks.payload.list;
-	}
+	};
 	
 	/**
 	 * @param	tileTicks	All TileTicks as an array of NBT objects
 	 */
 	this.setTickData = function(tileTicks) {
 		this.schematic.Schematic.payload.TileTicks.payload.list = tileTicks;
-	}
+	};
 	
 	/**
 	 * Removes internal reference to the schematic object allowing it to be freed by the garbage collector.
@@ -609,7 +609,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 	 */
 	this.destroy = function() {
 		delete this.schematic;
-	}
+	};
     
 	/**
 	 * @param x
@@ -626,7 +626,7 @@ com.mordritch.mcSim.World_Schematic = function(schematic, defaultSizeX, defaultS
 	  		y: y,
 	  		z: z
 	  	};
-	}
+	};
 
 	this.construct();	
-}
+};

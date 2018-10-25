@@ -22,21 +22,21 @@
 		this.binaryParser = new BinaryParser(true, false);
 		this.expectedStartingTag = this.TAG_Compound;
 	
-		this.readByte = function(peekOnly) {return this.binaryParser.toByte(this.readBuffer(8,peekOnly))};
-		this.readShort = function(peekOnly) {return this.binaryParser.toShort(this.readBuffer(16,peekOnly))};
-		this.readInt = function(peekOnly) {return this.binaryParser.toInt(this.readBuffer(32),peekOnly)};
-		this.readLong = function(peekOnly) {return this.binaryParser.toLong(this.readBuffer(64),peekOnly)};
-		this.readFloat = function(peekOnly) {return this.binaryParser.toFloat(this.readBuffer(32),peekOnly)};
-		this.readDouble = function(peekOnly) {return this.binaryParser.toDouble(this.readBuffer(64),peekOnly)};
-		this.readString = function() {return this.readBuffer(8 * this.readShort())};
+		this.readByte = function(peekOnly) {return this.binaryParser.toByte(this.readBuffer(8,peekOnly));};
+		this.readShort = function(peekOnly) {return this.binaryParser.toShort(this.readBuffer(16,peekOnly));};
+		this.readInt = function(peekOnly) {return this.binaryParser.toInt(this.readBuffer(32),peekOnly);};
+		this.readLong = function(peekOnly) {return this.binaryParser.toLong(this.readBuffer(64),peekOnly);};
+		this.readFloat = function(peekOnly) {return this.binaryParser.toFloat(this.readBuffer(32),peekOnly);};
+		this.readDouble = function(peekOnly) {return this.binaryParser.toDouble(this.readBuffer(64),peekOnly);};
+		this.readString = function() {return this.readBuffer(8 * this.readShort());};
 	
-		this.writeByte = function(number) {return String.fromCharCode(number)};
-		this.writeShort = function(number) {return this.binaryParser.fromShort(number)};
-		this.writeInt = function(number) {return this.binaryParser.fromInt(number)};
-		this.writeLong = function(number) {return this.binaryParser.fromLong(number)};
-		this.writeFloat = function(number) {return this.binaryParser.fromFloat(number)};
-		this.writeDouble = function(number) {return this.binaryParser.fromDouble(number)};
-		this.writeString = function(string) {return this.writeShort(string.length) + string;}
+		this.writeByte = function(number) {return String.fromCharCode(number);};
+		this.writeShort = function(number) {return this.binaryParser.fromShort(number);};
+		this.writeInt = function(number) {return this.binaryParser.fromInt(number);};
+		this.writeLong = function(number) {return this.binaryParser.fromLong(number);};
+		this.writeFloat = function(number) {return this.binaryParser.fromFloat(number);};
+		this.writeDouble = function(number) {return this.binaryParser.fromDouble(number);};
+		this.writeString = function(string) {return this.writeShort(string.length) + string;};
 		
 		/**
 		 * Returns string of data of a length in bits
@@ -68,7 +68,7 @@
 	
 			if (!peekOnly) this.pointer += byteLength;
 			return returnData;
-		}
+		};
 	
 		this.decode = function(options) {
 			//console.log(hexDump(options.data));
@@ -77,6 +77,7 @@
 			var progress = options.progress;
 			var updateInterval = options.updateInterval;
 			var cancel = options.cancel;
+			var onError = options.onError;
 			
 			//Check if it's gzipped (starts with 0x1F and 0x8B):
 			if (
@@ -98,9 +99,16 @@
 				});
 			}
 			else {
-				this.decodeNonGzipped(binaryData, callback);
+				try
+				{
+					this.decodeNonGzipped(binaryData, callback);
+				}
+				catch (exception)
+				{
+					onError(exception);
+				}
 			}
-		}
+		};
 		
 		/**
 		 * Decodes uncompressed NBT data
@@ -140,7 +148,7 @@
 			};
 			
 			callback(returnData);
-		}
+		};
 		
 		/**
 		 * Returns a hex representation of a byte value
@@ -159,7 +167,7 @@
 			else {
 				return number.toString(16);
 			}
-		}
+		};
 		
 		/**
 		 * Get the tagData associated with the tag type
@@ -209,35 +217,35 @@
 					throw new Error("NbtParser.readTagData(): Unknown tag type 0x"+this.byteToHex(tagId)+" encountered. Current pointer position is "+this.pointer+" (0x"+this.pointer.toString(16)+").");
 					break;
 			}
-		}
+		};
 		
 		this.readTagData_byte = function() {
 			return this.readByte();
-		}
+		};
 		
 		this.readTagData_short = function() {
 			return this.readShort();
-		}
+		};
 		
 		this.readTagData_int = function() {
 			return this.readInt();
-		}
+		};
 		
 		this.readTagData_long = function() {
 			return this.readLong();
-		}
+		};
 		
 		this.readTagData_float = function() {
 			return this.readFloat();
-		}
+		};
 		
 		this.readTagData_double = function() {
 			return this.readDouble();
-		}
+		};
 		
 		this.readTagData_string = function() {
 			return this.readString();
-		}
+		};
 		
 		this.readTagData_byteArray = function() {
 			var byteLength = this.readInt();
@@ -249,7 +257,7 @@
 			}
 	
 			return byteArray;
-		}
+		};
 		
 		this.readTagData_intArray = function() {
 			var arrayLength = this.readInt();
@@ -260,7 +268,7 @@
 			}
 	
 			return byteArray;
-		}
+		};
 		
 		this.readTagData_list = function() {
 			var tagId = this.readByte();
@@ -272,7 +280,7 @@
 			}
 			
 			return {"ofType": tagId, "list": returnArray};
-		}
+		};
 		
 		this.readTagData_compound = function() {
 			var returnData = {};
@@ -287,7 +295,7 @@
 				tagId = this.readByte();
 			}
 			return returnData;
-		}
+		};
 	
 		/**
 		 * Takes a Javascript object and encodes it into NBT data 
@@ -349,7 +357,7 @@
 			
 			//console.log(hexDump(this.returnData));
 			options.success(this.returnData);
-		}
+		};
 	
 		/**
 		 * Generate binary version of data for a tag
@@ -400,31 +408,31 @@
 					throw new Error("NbtParser.writeTagData(): Unknown tag type 0x"+this.byteToHex(tagId)+" encountered.");
 					break;
 			}
-		}
+		};
 		
 		this.writeTagData_byte = function(number) {
 			this.returnData += this.writeByte(number);
-		}
+		};
 		
 		this.writeTagData_short = function(number) {
 			this.returnData += this.writeShort(number);
-		}
+		};
 		
 		this.writeTagData_int = function(number) {
 			this.returnData += this.writeInt(number);
-		}
+		};
 		
 		this.writeTagData_long = function(number) {
 			this.returnData += this.writeLong(number);
-		}
+		};
 		
 		this.writeTagData_float = function(number) {
 			this.returnData += this.writeFloat(number);
-		}
+		};
 		
 		this.writeTagData_double = function(number) {
 			this.returnData += this.writeDouble(number);
-		}
+		};
 		
 
 		this.writeTagData_byteArray = function(byteArray) {
@@ -432,18 +440,18 @@
 			for (var i=0; i < byteArray.length;	i++) {
 				this.returnData += String.fromCharCode(byteArray[i]);
 			};
-		}
+		};
 		
 		this.writeTagData_intArray = function(intArray) {
 			this.returnData += this.writeInt(intArray.length);
 			for (var i=0; i < intArray.length;	i++) {
 				this.returnData +=  this.writeInt(intArray[i]);
 			};
-		}
+		};
 		
 		this.writeTagData_string = function(string) {
 			this.returnData += this.writeString(string);
-		}
+		};
 		
 		this.writeTagData_list = function(data) {
 			var ofTagId = data.ofType;
@@ -454,7 +462,7 @@
 			for (var i=0; i<length; i++) {
 				this.writeTagData(ofTagId, data.list[i]);
 			}
-		}
+		};
 		
 		this.writeTagData_compound = function(data) {
 			for (var tagName in data) {
@@ -466,8 +474,8 @@
 					//console.log("tag: %s, name: %s(%s), before: %s, after: %s, difference: %s, difference (excluding tag type and name): %s", data[tagName].type, tagName, tagName.length, before, this.returnData.length, this.returnData.length - before, this.returnData.length - before - 3 - tagName.length);
 			}
 			this.returnData += this.writeByte(this.TAG_End);
-		}
-	}
+		};
+	};
 
 	com.mordritch.mcSim.NbtParser = NbtParser;
 })();

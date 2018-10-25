@@ -1,3 +1,4 @@
 *.class
 *.pyc
 *.pyo
+bin/JsNbtParser-min.js
